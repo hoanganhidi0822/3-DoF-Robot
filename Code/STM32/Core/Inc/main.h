@@ -71,6 +71,12 @@ void Error_Handler(void);
 #define motorL2_GPIO_Port GPIOB
 #define motorL3_Pin GPIO_PIN_2
 #define motorL3_GPIO_Port GPIOB
+#define M1dir_Pin GPIO_PIN_13
+#define M1dir_GPIO_Port GPIOF
+#define M2dir_Pin GPIO_PIN_14
+#define M2dir_GPIO_Port GPIOF
+#define M3dir_Pin GPIO_PIN_15
+#define M3dir_GPIO_Port GPIOF
 
 /* USER CODE BEGIN Private defines */
 

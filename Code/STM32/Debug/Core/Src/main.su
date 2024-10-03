@@ -1,0 +1,17 @@
+../Core/Src/main.c:94:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:149:6:Mag_Control	16	static
+../Core/Src/main.c:153:6:Read_Angles	8	static
+../Core/Src/main.c:166:5:calculate_steps	24	static
+../Core/Src/main.c:178:5:maxSteps	32	static
+../Core/Src/main.c:193:6:pulseCreater	24	static
+../Core/Src/main.c:234:6:autoHome	4	static
+../Core/Src/main.c:238:6:direction	4	static
+../Core/Src/main.c:249:5:main	8	static
+../Core/Src/main.c:313:6:SystemClock_Config	152	static
+../Core/Src/main.c:390:13:MX_I2C1_Init	8	static
+../Core/Src/main.c:438:13:MX_I2C2_Init	8	static
+../Core/Src/main.c:486:13:MX_I2C3_Init	8	static
+../Core/Src/main.c:534:13:MX_TIM2_Init	40	static
+../Core/Src/main.c:579:13:MX_TIM4_Init	40	static
+../Core/Src/main.c:624:13:MX_GPIO_Init	48	static
+../Core/Src/main.c:710:6:Error_Handler	4	static,ignoring_inline_asm

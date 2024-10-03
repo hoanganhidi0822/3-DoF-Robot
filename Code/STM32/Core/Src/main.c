@@ -32,12 +32,15 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define BASE_INTERRUPT_PERIOD_MICROS 50
+#define FASTEST_PERIOD_MICROS 50  // Fastest pulse period = 250 microseconds
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+AS5600_TypeDef *angleL1;
+AS5600_TypeDef *angleL2;
+AS5600_TypeDef *angleL3;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -50,19 +53,26 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-uint16_t angle1, angle2, angle3;
-// Motor step calculation
-int steps_motor_1 = 0;
-int steps_motor_2 = 0;
-int steps_motor_3 = 0;
+float angle1, angle2, angle3;
+// Define counters for each motor
+int countPulseL1 = 0;
+int countPulseL2 = 0;
+int countPulseL3 = 0;
 
-// Determine the maximum steps
-int max_steps = 0;
+// Soft counters and periods
+int softCounter1 = 0;
+int softCounter2 = 0;
+int softCounter3 = 0;
 
-// Calculate pulse period for each motor based on max steps
-float period_motor_1 = 0;
-float period_motor_2 = 0;
-float period_motor_3 = 0;
+int periodMotor1 = 0;
+int periodMotor2 = 0;
+int periodMotor3 = 0;
+
+float target_angle_1 = 0;
+float target_angle_2 = 0;
+float target_angle_3 = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,29 +84,78 @@ static void MX_I2C2_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+void pulseCreater(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 //----------------------Ngat Sensor----------------------//
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if (htim->Instance==htim2.Instance){
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+
+	//------------
+	if (htim->Instance==htim2.Instance)
+	{
+		target_angle_1 = 30;
+		angle1  = 0;
+		pulseCreater();
 
 	}
+
+
+	if (htim->Instance == TIM4)
+	{  // Ensure the correct timer is being checked
+
+		//HAL_GPIO_TogglePin(GPIOB, motorL1_Pin);
+		// Handle Motor 1
+		if (countPulseL1 > 0) {
+			softCounter1++;  // Increment soft counter for motor 1
+			if (softCounter1 >= periodMotor1) {  // If soft counter reaches the desired period
+				HAL_GPIO_TogglePin(GPIOB, motorL1_Pin);  // Toggle Motor 1 pin (generate pulse)
+				softCounter1 = 0;  // Reset the soft counter for motor 1
+				countPulseL1--;    // Decrement the pulse count
+			}
+		} else {
+			HAL_GPIO_WritePin(GPIOB, motorL1_Pin, GPIO_PIN_RESET);  // Stop Motor 1
+		}
+
+		// Handle Motor 2
+		if (countPulseL2 > 0) {
+			softCounter2++;  // Increment soft counter for motor 2
+			if (softCounter2 >= periodMotor2) {  // If soft counter reaches the desired period
+				HAL_GPIO_TogglePin(GPIOB, motorL2_Pin);  // Toggle Motor 2 pin (generate pulse)
+				softCounter2 = 0;  // Reset the soft counter for motor 2
+				countPulseL2--;    // Decrement the pulse count
+			}
+		} else {
+			HAL_GPIO_WritePin(GPIOB, motorL2_Pin, GPIO_PIN_RESET);  // Stop Motor 2
+		}
+
+		// Handle Motor 3
+		if (countPulseL3 > 0) {
+			softCounter3++;  // Increment soft counter for motor 3
+			if (softCounter3 >= periodMotor3) {  // If soft counter reaches the desired period
+				HAL_GPIO_TogglePin(GPIOB, motorL3_Pin);  // Toggle Motor 3 pin (generate pulse)
+				softCounter3 = 0;  // Reset the soft counter for motor 3
+				countPulseL3--;    // Decrement the pulse count
+			}
+		} else {
+			HAL_GPIO_WritePin(GPIOB, motorL3_Pin, GPIO_PIN_RESET);  // Stop Motor 3
+		}
+	}
+
 }
 //----------------------Pulse Creater--------------------//
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if (htim->Instance==htim4.Instance){
 
-	}
-}
 
-void Mag_Read(bool state){
+void Mag_Control(int state)
+{
 	HAL_GPIO_WritePin(Mag_GPIO_Port, Mag_Pin, state);
 }
 
-void Read_Angles(void) {
+void Read_Angles(void)
+{
 
     // Read raw angle from angleL1 sensor
     AS5600_GetRawAngle(angleL1, &angle1);
@@ -109,59 +168,83 @@ void Read_Angles(void) {
 
 }
 
+int calculate_steps(float current_angle, float target_angle)
+{
+    // Calculate the angular difference
+    float angular_difference = target_angle - current_angle;
+
+    // Convert angular difference to steps
+    int steps_needed = (int)((angular_difference / 360) * 44800);
+
+    // Return the absolute number of steps (stepper motors can't move negative steps)
+    return steps_needed;
+}
+
+int maxSteps(int steps_motor_1, int steps_motor_2, int steps_motor_3)
+{
+    int max_value = steps_motor_1;  // Assume motor 1 has the maximum steps
+
+    if (steps_motor_2 > max_value) {
+        max_value = steps_motor_2;  // Update if motor 2 has more steps
+    }
+
+    if (steps_motor_3 > max_value) {
+        max_value = steps_motor_3;  // Update if motor 3 has more steps
+    }
+
+    return max_value;  // Return the largest number of steps
+}
+
 void pulseCreater(void)
 {
-	// Motor step calculation
-	int steps_motor_1 = calculate_steps(target_angle_1);
-	int steps_motor_2 = calculate_steps(target_angle_2);
-	int steps_motor_3 = calculate_steps(target_angle_3);
-
-	// Determine the maximum steps
-	int max_steps = max(steps_motor_1, steps_motor_2, steps_motor_3);
-
-	// Calculate pulse period for each motor based on max steps
-	float period_motor_1 = (float)max_steps / steps_motor_1;
-	float period_motor_2 = (float)max_steps / steps_motor_2;
-	float period_motor_3 = (float)max_steps / steps_motor_3;
+    // Motor step calculation
+    int steps_motor_1 = calculate_steps(angle1,target_angle_1);
+    int steps_motor_2 = calculate_steps(angle2,target_angle_2);
+    int steps_motor_3 = calculate_steps(angle3,target_angle_3);
 
 
+    // Set direction based on whether the target angle is positive or negative
+//	if (target_angle_1 > 0)
+//		HAL_GPIO_WritePin(GPIOB, MOTOR1_DIR_PIN, GPIO_PIN_SET);  // Clockwise
+//	else
+//		HAL_GPIO_WritePin(GPIOB, MOTOR1_DIR_PIN, GPIO_PIN_RESET);  // Counterclockwise
+//
+//	if (target_angle_2 > 0)
+//		HAL_GPIO_WritePin(GPIOB, MOTOR2_DIR_PIN, GPIO_PIN_SET);  // Clockwise
+//	else
+//		HAL_GPIO_WritePin(GPIOB, MOTOR2_DIR_PIN, GPIO_PIN_RESET);  // Counterclockwise
+//
+//	if (target_angle_3 > 0)
+//		HAL_GPIO_WritePin(GPIOB, MOTOR3_DIR_PIN, GPIO_PIN_SET);  // Clockwise
+//	else
+//		HAL_GPIO_WritePin(GPIOB, MOTOR3_DIR_PIN, GPIO_PIN_RESET);  // Counterclockwise
 
+    // Determine the maximum steps
+    int max_steps = maxSteps(steps_motor_1, steps_motor_2, steps_motor_3);
 
+    // Calculate pulse period for each motor based on max steps
+    periodMotor1 = (int)(((float)max_steps / steps_motor_1) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
+    periodMotor2 = (int)(((float)max_steps / steps_motor_2) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
+    periodMotor3 = (int)(((float)max_steps / steps_motor_3) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
 
+    // Set the number of pulses (steps) for each motor
+    countPulseL1 = steps_motor_1;
+    countPulseL2 = steps_motor_2;
+    countPulseL3 = steps_motor_3;
 
-	if (countPulseL1 > 0)
-	{
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-		countPulseL1 --;
-	}
-	else{
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-	}
-
-	//----------------------------------------------------
-	if (countPulseL2 > 0)
-	{
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-		countPulseL2 --;
-	}
-	else{
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-	}
-
-	//------------------------------------------------------
-	if (countPulseL3 > 0)
-	{
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-		countPulseL3 --;
-	}
-	else{
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-	}
+    // Start Timer 4 (assuming it's already initialized)
+    //HAL_TIM_Base_Start_IT(&htim4);
 }
 
 void autoHome(){
 
 }
+
+void direction(){
+
+}
+
+
 /* USER CODE END 0 */
 
 /**
@@ -172,6 +255,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -180,17 +264,17 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-	angleL1 = AS5600_New();
-	angleL1->i2cHandle= &hi2c1;
-	AS5600_Init(angleL1);
-
-	angleL2 = AS5600_New();
-	angleL2->i2cHandle= &hi2c2;
-	AS5600_Init(angleL2);
-
-	angleL3 = AS5600_New();
-	angleL3->i2cHandle= &hi2c3;
-	AS5600_Init(angleL3);
+//	angleL1 = AS5600_New();
+//	angleL1->i2cHandle= &hi2c1;
+//	AS5600_Init(angleL1);
+//
+//	angleL2 = AS5600_New();
+//	angleL2->i2cHandle= &hi2c2;
+//	AS5600_Init(angleL2);
+//
+//	angleL3 = AS5600_New();
+//	angleL3->i2cHandle= &hi2c3;
+//	AS5600_Init(angleL3);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -220,7 +304,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+//	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_14, GPIO_PIN_SET);
+//	  HAL_Delay(0.1);
+//	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_14, GPIO_PIN_RESET);
+//	  HAL_Delay(0.1);
   }
   /* USER CODE END 3 */
 }
@@ -233,6 +320,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_CRSInitTypeDef RCC_CRSInitStruct = {0};
 
   /** Supply configuration update enable
   */
@@ -247,11 +335,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_CSI;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.CSIState = RCC_CSI_ON;
+  RCC_OscInitStruct.CSICalibrationValue = 16;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_CSI;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = 2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
@@ -270,8 +360,8 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
@@ -281,6 +371,21 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
+  /** Enable the SYSCFG APB clock
+  */
+  __HAL_RCC_CRS_CLK_ENABLE();
+
+  /** Configures CRS
+  */
+  RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+  RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB1;
+  RCC_CRSInitStruct.Polarity = RCC_CRS_SYNC_POLARITY_RISING;
+  RCC_CRSInitStruct.ReloadValue = __HAL_RCC_CRS_RELOADVALUE_CALCULATE(48000000,1);
+  RCC_CRSInitStruct.ErrorLimitValue = 34;
+  RCC_CRSInitStruct.HSI48CalibrationValue = 32;
+
+  HAL_RCCEx_CRSConfig(&RCC_CRSInitStruct);
 }
 
 /**
@@ -448,7 +553,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 42000;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 19;
+  htim2.Init.Period = 1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -491,9 +596,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 0;
+  htim4.Init.Prescaler = 840;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 1;
+  htim4.Init.Period = 4;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -530,9 +635,9 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -540,6 +645,12 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, motorL1_Pin|motorL2_Pin|motorL3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOF, M1dir_Pin|M2dir_Pin|M3dir_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : LimL1_Pin LimL2_Pin LimL3_Pin */
   GPIO_InitStruct.Pin = LimL1_Pin|LimL2_Pin|LimL3_Pin;
@@ -554,11 +665,40 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(Mag_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : motorL1_Pin motorL2_Pin motorL3_Pin */
-  GPIO_InitStruct.Pin = motorL1_Pin|motorL2_Pin|motorL3_Pin;
+  /*Configure GPIO pins : motorL1_Pin motorL2_Pin */
+  GPIO_InitStruct.Pin = motorL1_Pin|motorL2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : motorL3_Pin */
+  GPIO_InitStruct.Pin = motorL3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(motorL3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : M1dir_Pin M2dir_Pin M3dir_Pin */
+  GPIO_InitStruct.Pin = M1dir_Pin|M2dir_Pin|M3dir_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PG7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF10_CRS_SYNC;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
