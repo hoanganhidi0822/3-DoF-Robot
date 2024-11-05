@@ -33,7 +33,9 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define BASE_INTERRUPT_PERIOD_MICROS 50
-#define FASTEST_PERIOD_MICROS 50  // Fastest pulse period = 250 microseconds
+#define FASTEST_PERIOD_MICROS 120  // Fastest pulse period = 250 microseconds
+#define HOMING_PULSE_LIMIT  50000
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -53,12 +55,17 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
-float angle1, angle2, angle3;
+float angle1, angle2, angle3 = 0;
+int angle11, angle21, angle31 = 0;
 // Define counters for each motor
 int countPulseL1 = 0;
 int countPulseL2 = 0;
 int countPulseL3 = 0;
 
+int a,b,c = 0;
+float d = 0;
+float e = 0;
+int dir1, dir2, dir3 = 1;
 // Soft counters and periods
 int softCounter1 = 0;
 int softCounter2 = 0;
@@ -71,6 +78,10 @@ int periodMotor3 = 0;
 float target_angle_1 = 0;
 float target_angle_2 = 0;
 float target_angle_3 = 0;
+
+int steps_motor_1 = 0;
+int steps_motor_2 = 0;
+int steps_motor_3 = 0;
 
 
 /* USER CODE END PV */
@@ -85,7 +96,10 @@ static void MX_I2C3_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 void pulseCreater(void);
-
+void angleControl(float target_angle_1, float target_angle_2, float target_angle_3);
+void update_current_angle(int motor_index, float steps,int direction);
+void checkLimitSwitches(void) ;
+void setHomeAngles();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -97,9 +111,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	//------------
 	if (htim->Instance==htim2.Instance)
 	{
-		target_angle_1 = 30;
-		angle1  = 0;
-		pulseCreater();
+
+		angleControl(target_angle_1,target_angle_2,target_angle_3);
 
 	}
 
@@ -113,8 +126,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			softCounter1++;  // Increment soft counter for motor 1
 			if (softCounter1 >= periodMotor1) {  // If soft counter reaches the desired period
 				HAL_GPIO_TogglePin(GPIOB, motorL1_Pin);  // Toggle Motor 1 pin (generate pulse)
+
 				softCounter1 = 0;  // Reset the soft counter for motor 1
 				countPulseL1--;    // Decrement the pulse count
+				//e = 360/(44800*2);
+				update_current_angle(1,1,dir1);
 			}
 		} else {
 			HAL_GPIO_WritePin(GPIOB, motorL1_Pin, GPIO_PIN_RESET);  // Stop Motor 1
@@ -125,8 +141,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			softCounter2++;  // Increment soft counter for motor 2
 			if (softCounter2 >= periodMotor2) {  // If soft counter reaches the desired period
 				HAL_GPIO_TogglePin(GPIOB, motorL2_Pin);  // Toggle Motor 2 pin (generate pulse)
+
 				softCounter2 = 0;  // Reset the soft counter for motor 2
 				countPulseL2--;    // Decrement the pulse count
+				update_current_angle(2,1,dir2);
+
 			}
 		} else {
 			HAL_GPIO_WritePin(GPIOB, motorL2_Pin, GPIO_PIN_RESET);  // Stop Motor 2
@@ -137,8 +156,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			softCounter3++;  // Increment soft counter for motor 3
 			if (softCounter3 >= periodMotor3) {  // If soft counter reaches the desired period
 				HAL_GPIO_TogglePin(GPIOB, motorL3_Pin);  // Toggle Motor 3 pin (generate pulse)
+
 				softCounter3 = 0;  // Reset the soft counter for motor 3
 				countPulseL3--;    // Decrement the pulse count
+				d = 1/(target_angle_2 + target_angle_3);
+				update_current_angle(3,abs(target_angle_3)/(target_angle_2 + target_angle_3), dir3);
+
 			}
 		} else {
 			HAL_GPIO_WritePin(GPIOB, motorL3_Pin, GPIO_PIN_RESET);  // Stop Motor 3
@@ -168,13 +191,68 @@ void Read_Angles(void)
 
 }
 
+void update_current_angle(int motor_index, float steps, int direction) {
+    float angle_change = steps * 360.0 / (44800.0 * 2); // Calculate the change in angle
+
+    // If direction is negative, reverse the angle change
+    if (direction < 0) {
+        angle_change = -angle_change;
+    }
+
+    switch (motor_index) {
+        case 1:
+            angle1 += angle_change; // Update current angle for motor 1
+            break;
+        case 2:
+            angle2 += angle_change; // Update current angle for motor 2
+            break;
+        case 3:
+            angle3 += angle_change; // Update current angle for motor 3
+            break;
+    }
+}
+
+
+//void checkLimitSwitches(void) {
+//    // Check and handle limit switch 1
+//    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET) {
+//        a = 1;
+//        countPulseL1 = 0;  // Stop Motor 1 if limit switch 1 is triggered
+//    } else {
+//        a = 0;
+//    }
+//
+//    // Check and handle limit switch 2, ensuring that it only works if limit switch 3 is not active
+//    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
+//        b = 1;
+//        countPulseL2 = 0;  // Stop Motor 2 if limit switch 2 is triggered
+//    } else {
+//        b = 0;
+//    }
+//
+//    // Check and handle limit switch 3
+//    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET) {
+//        c = 1;
+//        countPulseL3 = countPulseL2;  // Stop Motor 3 if limit switch 3 is triggered
+//
+//        HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_RESET);  // Stop motor direction for M3
+//    } else {
+//    	c = 0;
+//        HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_SET);  // Set motor direction for M3
+//
+//    }
+//}
+
 int calculate_steps(float current_angle, float target_angle)
 {
     // Calculate the angular difference
-    float angular_difference = target_angle - current_angle;
+
+    float angular_difference ;
+
+	angular_difference = target_angle - current_angle;
 
     // Convert angular difference to steps
-    int steps_needed = (int)((angular_difference / 360) * 44800);
+    int steps_needed = (int)((angular_difference / 360) * 44800*2);
 
     // Return the absolute number of steps (stepper motors can't move negative steps)
     return steps_needed;
@@ -195,53 +273,131 @@ int maxSteps(int steps_motor_1, int steps_motor_2, int steps_motor_3)
     return max_value;  // Return the largest number of steps
 }
 
-void pulseCreater(void)
-{
-    // Motor step calculation
-    int steps_motor_1 = calculate_steps(angle1,target_angle_1);
-    int steps_motor_2 = calculate_steps(angle2,target_angle_2);
-    int steps_motor_3 = calculate_steps(angle3,target_angle_3);
+
+void angleControl(float target_angle_1, float target_angle_2, float target_angle_3) {
+	// Read the current angles from the sensors
+	//Read_Angles();
+
+	// Calculate the required steps for each motor based on current and target angles
+	int steps_motor_1 = calculate_steps(angle1, target_angle_1);
+	int steps_motor_2 = calculate_steps(angle2, target_angle_2);
+	int steps_motor_3 = 0;
+
+	steps_motor_3 = calculate_steps(angle3, (target_angle_3 + target_angle_2));
 
 
-    // Set direction based on whether the target angle is positive or negative
-//	if (target_angle_1 > 0)
-//		HAL_GPIO_WritePin(GPIOB, MOTOR1_DIR_PIN, GPIO_PIN_SET);  // Clockwise
-//	else
-//		HAL_GPIO_WritePin(GPIOB, MOTOR1_DIR_PIN, GPIO_PIN_RESET);  // Counterclockwise
-//
-//	if (target_angle_2 > 0)
-//		HAL_GPIO_WritePin(GPIOB, MOTOR2_DIR_PIN, GPIO_PIN_SET);  // Clockwise
-//	else
-//		HAL_GPIO_WritePin(GPIOB, MOTOR2_DIR_PIN, GPIO_PIN_RESET);  // Counterclockwise
-//
-//	if (target_angle_3 > 0)
-//		HAL_GPIO_WritePin(GPIOB, MOTOR3_DIR_PIN, GPIO_PIN_SET);  // Clockwise
-//	else
-//		HAL_GPIO_WritePin(GPIOB, MOTOR3_DIR_PIN, GPIO_PIN_RESET);  // Counterclockwise
 
-    // Determine the maximum steps
-    int max_steps = maxSteps(steps_motor_1, steps_motor_2, steps_motor_3);
+	// Set the pulse counts for each motor
+	countPulseL1 = abs(steps_motor_1);
+	countPulseL2 = abs(steps_motor_2);
+	countPulseL3 = abs(steps_motor_3);
 
-    // Calculate pulse period for each motor based on max steps
-    periodMotor1 = (int)(((float)max_steps / steps_motor_1) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
-    periodMotor2 = (int)(((float)max_steps / steps_motor_2) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
-    periodMotor3 = (int)(((float)max_steps / steps_motor_3) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
+	// Determine the direction for each motor and set control pins accordingly
+	if (target_angle_1 > angle1) {
+		// Move motor 1 clockwise
+		dir1 = 1;
+		HAL_GPIO_WritePin(GPIOF, M1dir_Pin, GPIO_PIN_SET);
 
-    // Set the number of pulses (steps) for each motor
-    countPulseL1 = steps_motor_1;
-    countPulseL2 = steps_motor_2;
-    countPulseL3 = steps_motor_3;
+	} else {
+		dir1 = -1;
+		// Move motor 1 counterclockwise
+		HAL_GPIO_WritePin(GPIOF, M1dir_Pin, GPIO_PIN_RESET);
+	}
 
-    // Start Timer 4 (assuming it's already initialized)
-    //HAL_TIM_Base_Start_IT(&htim4);
+	if (target_angle_2 > angle2) {
+		// Move motor 2 clockwise
+		dir2 = 1;
+		HAL_GPIO_WritePin(GPIOF, M2dir_Pin, GPIO_PIN_SET);
+	} else {
+		// Move motor 2 counterclockwise
+		dir2 = -1;
+		HAL_GPIO_WritePin(GPIOF, M2dir_Pin, GPIO_PIN_RESET);
+	}
+
+	if (target_angle_3 > angle3) {
+		// Move motor 3 clockwise
+		dir3 = 1;
+		HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_RESET);
+	} else {
+		// Move motor 3 counterclockwise
+		dir3 = -1;
+		HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_SET);
+	}
+
+	// Determine the maximum steps needed to synchronize the motors
+	int max_steps = maxSteps(abs(steps_motor_1), abs(steps_motor_2), abs(steps_motor_3));
+
+	// Calculate the pulse periods for each motor based on the maximum steps
+	periodMotor1 = (int)(((float)max_steps / abs(steps_motor_1)) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
+	periodMotor2 = (int)(((float)max_steps / abs(steps_motor_2)) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
+	periodMotor3 = (int)(((float)max_steps / abs(steps_motor_3)) * (FASTEST_PERIOD_MICROS / BASE_INTERRUPT_PERIOD_MICROS));
+
+	// Start the timer if it is not already running (ensure the timer has been initialized)
+	//HAL_TIM_Base_Start_IT(&htim4);
 }
 
-void autoHome(){
 
+
+void autoHomeMotors(void) {
+    // Set initial movement direction for homing (assumes motors move towards the limit switches)
+    HAL_GPIO_WritePin(GPIOF, M1dir_Pin, GPIO_PIN_RESET); // Move Motor 1 in the homing direction
+    HAL_GPIO_WritePin(GPIOF, M2dir_Pin, GPIO_PIN_SET); // Move Motor 2 in the homing direction
+    HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_SET); // Move Motor 3 in the homing direction
+
+    // Start moving the motors
+    countPulseL1 = HOMING_PULSE_LIMIT;  // Arbitrary large value for homing
+    countPulseL2 = HOMING_PULSE_LIMIT;  // Arbitrary large value for homing
+    countPulseL3 = HOMING_PULSE_LIMIT;  // Arbitrary large value for homing
+
+    periodMotor1 = 4;
+	periodMotor2 = 4;
+	periodMotor3 = 4;
+
+    // Wait until all limit switches are triggered
+    while (a == 0 || b == 0 || c == 0) {
+        checkLimitSwitches(); // Continuously check the limit switches
+    }
+
+    // Set the home angle once all limit switches are activated
+    setHomeAngles();
 }
 
-void direction(){
+void setHomeAngles(void) {
+    // Set the current angle to zero or a specific home angle as needed
+    angle1 = 0.0; // Home position for Motor 1
+    angle2 = 0.0; // Home position for Motor 2
+    angle3 = -65.0; // Home position for Motor 3
 
+    // Optionally print a message for debugging
+    //printf("Motors homed. Home positions set.\n");
+}
+
+void checkLimitSwitches(void) {
+    // Check and handle limit switch 1
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET) {
+        a = 1;
+        countPulseL1 = 0;  // Stop Motor 1 if limit switch 1 is triggered
+    } else {
+        a = 0;
+    }
+
+    // Check and handle limit switch 2, ensuring that it only works if limit switch 3 is not active
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
+        b = 1;
+        countPulseL2 = 0;  // Stop Motor 2 if limit switch 2 is triggered
+    } else {
+        b = 0;
+    }
+
+    // Check and handle limit switch 3
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET) {
+        c = 1;
+        countPulseL3 = countPulseL2;  // Stop Motor 3 if limit switch 3 is triggered
+        HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_RESET);  // Stop motor direction for M3
+    } else {
+        c = 0;
+        HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_SET);  // Set motor direction for M3
+    }
 }
 
 
@@ -294,6 +450,16 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim4);
+  autoHomeMotors();
+
+  while (angle3 < -0.01){
+	  angleControl(0,0,0);
+  }
+
+
+//
+//
+//  angleControl(target_angle_1, target_angle_2,  target_angle_3);
 
   /* USER CODE END 2 */
 
@@ -304,6 +470,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  //calc_angle_3();
+	  //angleControl(angle1,angle2, angle3);
+
+	    // Stop Motor 3
+	  //checkLimitSwitches();
+	 // HAL_GPIO_WritePin(GPIOB, motorL3_Pin, GPIO_PIN_RESET);  // Stop Motor 3
 //	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_14, GPIO_PIN_SET);
 //	  HAL_Delay(0.1);
 //	  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_14, GPIO_PIN_RESET);
@@ -655,7 +827,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : LimL1_Pin LimL2_Pin LimL3_Pin */
   GPIO_InitStruct.Pin = LimL1_Pin|LimL2_Pin|LimL3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Mag_Pin */

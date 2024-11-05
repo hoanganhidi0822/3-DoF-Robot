@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<SimscapeMultibodyImportXML version="2.0" xmlns="urn:mathworks:SimscapeMultibody:import" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Created by="" on="10/18/24||13:09:00" using="Simscape Multibody Link Version 7.4" from="SolidWorks 31.0.1"/>
+<ModelUnits mass="kilogram" length="inch"/>
+<DataUnits mass="kilogram" length="meter"/>
+<RootAssembly name="Assem1" uid="Assem1" version="277">
+<AssemblyFile name="Assem1.SLDASM" type="SolidWorks Assembly"/>
+<InstanceTree>
+<Instance name="khau_xoay_link12.step-1" uid="khau_xoay_link12.step-1" entityUid="khau_xoay_link12.step*:*Default">
+<Transform>
+<Rotation>0.71035315419217915 0.70384543497079111 1.3240574699082571e-12 -0.70384543497079111 0.71035315419217915 2.9853212959913345e-13 -7.3042792347058764e-13 -1.1439950457223548e-12 1</Rotation>
+<Translation>-0.19073205378883679 0.28273957112740716 0.31805453181462279</Translation>
+</Transform>
+</Instance>
+<Instance name="Link3.step-1" uid="Link3.step-1" entityUid="Link3.step*:*Default">
+<Transform>
+<Rotation>0.3669329273858391 0.7038454349695854 0.6082448770623009 -0.36357136497221904 0.71035315419337386 -0.60267259677188123 -0.85625702296232054 -2.1685217026897174e-12 0.51655000786729632</Rotation>
+<Translation>-0.17456928804379873 0.1698791952293775 0.5332514537310471</Translation>
+</Transform>
+</Instance>
+<Instance name="EndEffector-1" uid="EndEffector-1" entityUid="EndEffector*:*Default">
+<Transform>
+<Rotation>0.71035313511650311 0.70342241611196188 0.024399343051919677 -0.70384541607680096 0.70991473411001815 0.02495396884619407 0.00023172792220977221 -0.034899495765872521 0.99939080018652249</Rotation>
+<Translation>-0.081542267326802004 0.10763341160646767 0.27507660379149762</Translation>
+</Transform>
+</Instance>
+<Instance name="Link2-1" uid="Link2-1" entityUid="Link2*:*Default">
+<Transform>
+<Rotation>0.46856512725712152 0.7038454349714558 -0.53389917136886422 -0.46427248736913929 0.71035315419152067 0.52900799030093149 0.75159681943884638 3.5484333661586796e-13 0.659622786908859</Rotation>
+<Translation>-0.22489843929175493 0.23728938266791685 0.32304179887782586</Translation>
+</Transform>
+</Instance>
+<Instance name="Base-1" uid="Base-1" grounded="true" entityUid="Base*:*Default">
+<Transform>
+<Rotation>1 0 0 0 1 0 0 0 1</Rotation>
+<Translation>-0.22704725629778297 0.25287330917820311 0.15010453181468175</Translation>
+</Transform>
+</Instance>
+</InstanceTree>
+<Constraints>
+<Concentric name="Concentric1">
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>Base-1</Uid>
+</InstancePath>
+<Position>0 0.0024999999999113509 0.097200000000000009</Position>
+<Axis>-5.4210108624331596e-16 1.03736463863413e-12 -1</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>khau_xoay_link12.step-1</Uid>
+</InstancePath>
+<Position>-0.0065350001020814119 -0.045000000000005792 -0.07304999999998929</Position>
+<Axis>0 -1.880440247958854e-12 1</Axis>
+</ConstraintGeometry>
+</Concentric>
+<Coincident name="Coincident1">
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>Base-1</Uid>
+</InstancePath>
+<Position>0.028943097424040803 0.031556791142507146 0.11290000000001099</Position>
+<Axis>0 -5.1974330338492995e-13 1</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>khau_xoay_link12.step-1</Uid>
+</InstancePath>
+<Position>-0.0065350001020813009 -0.044999999999999492 -0.055050000000001376</Position>
+<Axis>0 1.0474444016528857e-14 -1</Axis>
+</ConstraintGeometry>
+</Coincident>
+<Concentric name="Concentric4">
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>khau_xoay_link12.step-1</Uid>
+</InstancePath>
+<Position>0.0020649998945118653 -0.011000000000000017 0.0099499999998927668</Position>
+<Axis>0 1 -1.1580115321357066e-16</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>Link2-1</Uid>
+</InstancePath>
+<Position>-5.0653925498522767e-14 0.048333539196516902 0.0075235923245992042</Position>
+<Axis>1.7443009365782436e-12 -1.0000000000000002 2.85567160257959e-13</Axis>
+</ConstraintGeometry>
+</Concentric>
+<Coincident name="Coincident5">
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>khau_xoay_link12.step-1</Uid>
+</InstancePath>
+<Position>0.0020649998945118653 -0.011000000000000017 0.0099499999998927668</Position>
+<Axis>0 -1 1.1577455050204595e-16</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>Link2-1</Uid>
+</InstancePath>
+<Position>0.161573437499516 0.045333539196885646 0.31185722798549009</Position>
+<Axis>-1.7445805088092479e-12 1 -2.8560406217593295e-13</Axis>
+</ConstraintGeometry>
+</Coincident>
+<Concentric name="Concentric5">
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>Link2-1</Uid>
+</InstancePath>
+<Position>0.20000000000005952 -0.014666460803134263 0.0075235923249055148</Position>
+<Axis>-1.7445355553671848e-12 1 -2.8493244085444889e-13</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>Link3.step-1</Uid>
+</InstancePath>
+<Position>0.069280962315225403 0.0077946351165625724 0.0085078936106452174</Position>
+<Axis>1.7223762963902065e-16 -1 -1.9827492778953694e-12</Axis>
+</ConstraintGeometry>
+</Concentric>
+<Coincident name="Coincident6">
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>Link2-1</Uid>
+</InstancePath>
+<Position>0.16157343749961192 -0.0096664608031143719 0.31185722798550608</Position>
+<Axis>-1.7445805088092479e-12 1 -2.8560406217593295e-13</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>Link3.step-1</Uid>
+</InstancePath>
+<Position>-0.00082213074251180629 0.0027946351165600652 0.0097554286755705266</Position>
+<Axis>0 -1 -1.9846517090909199e-12</Axis>
+</ConstraintGeometry>
+</Coincident>
+<Concentric name="Concentric6">
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>Link3.step-1</Uid>
+</InstancePath>
+<Position>0.28839556683728995 0.052794635116562516 0.0085171207017387257</Position>
+<Axis>0 -1 -1.9844302080211744e-12</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="cylinder">
+<InstancePath>
+<Uid>EndEffector-1</Uid>
+</InstancePath>
+<Position>0.046373749999915212 0.025973084777915267 0.016539416488242364</Position>
+<Axis>-4.9203292890239647e-12 0.99939082701912219 0.034899496701744692</Axis>
+</ConstraintGeometry>
+</Concentric>
+<Coincident name="Coincident7">
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>Link3.step-1</Uid>
+</InstancePath>
+<Position>-0.00082213074251180629 0.047794635116560062 0.009755428675659733</Position>
+<Axis>0 -1 -1.9846517090909199e-12</Axis>
+</ConstraintGeometry>
+<ConstraintGeometry geomType="plane">
+<InstancePath>
+<Uid>EndEffector-1</Uid>
+</InstancePath>
+<Position>0.13668374999991562 0.026103957890990931 0.012791700886938373</Position>
+<Axis>-4.9209954228387397e-12 0.99939082701912207 0.034899496701744685</Axis>
+</ConstraintGeometry>
+</Coincident>
+</Constraints>
+</RootAssembly>
+<Assemblies>
+</Assemblies>
+<Parts>
+<Part name="Base" uid="Base*:*Default" version="121">
+<ModelUnits mass="kilogram" length="millimeter"/>
+<PartFile name="Base.SLDPRT" type="SolidWorks Part"/>
+<MassProperties>
+<Mass>0.55504291982628284</Mass>
+<CenterOfMass>3.3928335602779048e-08 0.0026042089298362477 0.034482557169530741</CenterOfMass>
+<Inertia>0.001486008152995855 0.001487365551195659 0.0016842472204081243 1.1692735437097416e-06 -1.1220907017473785e-09 9.9767495396143563e-10</Inertia>
+</MassProperties>
+<GeometryFile name="Base_Default_sldprt.STEP" type="STEP"/>
+<VisualProperties>
+<Ambient r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Diffuse r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Specular r="0.396078431372549" g="0.40980392156862744" b="0.46666666666666667" a="1"/>
+<Emissive r="0" g="0" b="0" a="1"/>
+<Shininess>0.3125</Shininess>
+</VisualProperties>
+</Part>
+<Part name="EndEffector" uid="EndEffector*:*Default" version="119">
+<ModelUnits mass="kilogram" length="millimeter"/>
+<PartFile name="EndEffector.SLDPRT" type="SolidWorks Part"/>
+<MassProperties>
+<Mass>0.077742713439988884</Mass>
+<CenterOfMass>0.09329905251643289 0.0068464808214768972 0.022228438023640072</CenterOfMass>
+<Inertia>2.3322048725250751e-05 4.6683479108198224e-05 5.1818917618723164e-05 -3.3327452617433841e-07 -4.9205076710550065e-07 8.8131803660706754e-08</Inertia>
+</MassProperties>
+<GeometryFile name="EndEffector_Default_sldprt.STEP" type="STEP"/>
+<VisualProperties>
+<Ambient r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Diffuse r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Specular r="0.396078431372549" g="0.40980392156862744" b="0.46666666666666667" a="1"/>
+<Emissive r="0" g="0" b="0" a="1"/>
+<Shininess>0.3125</Shininess>
+</VisualProperties>
+</Part>
+<Part name="Link2" uid="Link2*:*Default" version="134">
+<ModelUnits mass="kilogram" length="millimeter"/>
+<PartFile name="Link2.SLDPRT" type="SolidWorks Part"/>
+<MassProperties>
+<Mass>0.08903783961947298</Mass>
+<CenterOfMass>0.086063175044451101 0.016724002889649595 0.00010926245254135524</CenterOfMass>
+<Inertia>8.4639502128857307e-05 0.00040034769694796978 0.00045169015473284436 -9.179228301489184e-07 6.1097750523846191e-06 1.0654955278450092e-05</Inertia>
+</MassProperties>
+<GeometryFile name="Link2_Default_sldprt.STEP" type="STEP"/>
+<VisualProperties>
+<Ambient r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Diffuse r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Specular r="0.396078431372549" g="0.40980392156862744" b="0.46666666666666667" a="1"/>
+<Emissive r="0" g="0" b="0" a="1"/>
+<Shininess>0.3125</Shininess>
+</VisualProperties>
+</Part>
+<Part name="Link3.step" uid="Link3.step*:*Default" version="126">
+<ModelUnits mass="kilogram" length="millimeter"/>
+<PartFile name="Link3.step.SLDPRT" type="SolidWorks Part"/>
+<MassProperties>
+<Mass>0.089489382385736393</Mass>
+<CenterOfMass>0.13221344147223965 0.02779463511654762 0.016035771744813201</CenterOfMass>
+<Inertia>5.7716470416188995e-05 0.00065652085439096418 0.00068880433146007542 0 4.3501660606163409e-05 0</Inertia>
+</MassProperties>
+<GeometryFile name="Link3.step_Default_sldprt.STEP" type="STEP"/>
+<VisualProperties>
+<Ambient r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Diffuse r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Specular r="0.396078431372549" g="0.40980392156862744" b="0.46666666666666667" a="1"/>
+<Emissive r="0" g="0" b="0" a="1"/>
+<Shininess>0.3125</Shininess>
+</VisualProperties>
+</Part>
+<Part name="khau_xoay_link12.step" uid="khau_xoay_link12.step*:*Default" version="118">
+<ModelUnits mass="kilogram" length="millimeter"/>
+<PartFile name="khau_xoay_link12.step.SLDPRT" type="SolidWorks Part"/>
+<MassProperties>
+<Mass>0.43416950903050772</Mass>
+<CenterOfMass>-0.00047007019264927452 -0.044184719402875161 -0.01077183775606576</CenterOfMass>
+<Inertia>0.0024361445209600662 0.00066146115206189944 0.0022508152751107135 -1.0001305215943415e-05 -4.6721012441081275e-05 1.1718262952707798e-06</Inertia>
+</MassProperties>
+<GeometryFile name="khau_xoay_link12.step_Default_sldprt.STEP" type="STEP"/>
+<VisualProperties>
+<Ambient r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Diffuse r="0.792156862745098" g="0.81960784313725488" b="0.93333333333333335" a="1"/>
+<Specular r="0.396078431372549" g="0.40980392156862744" b="0.46666666666666667" a="1"/>
+<Emissive r="0" g="0" b="0" a="1"/>
+<Shininess>0.3125</Shininess>
+</VisualProperties>
+</Part>
+</Parts>
+</SimscapeMultibodyImportXML>
