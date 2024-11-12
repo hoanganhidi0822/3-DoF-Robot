@@ -1,0 +1,8 @@
+../Core/Src/as5600.c:39:17:AS5600_New	16	static
+../Core/Src/as5600.c:44:19:AS5600_Init	32	static
+../Core/Src/as5600.c:69:19:AS5600_SetStartPosition	40	static
+../Core/Src/as5600.c:91:19:AS5600_SetStopPosition	32	static
+../Core/Src/as5600.c:109:19:AS5600_SetMaxAngle	32	static
+../Core/Src/as5600.c:127:19:AS5600_SetPositiveRotationDirection	24	static
+../Core/Src/as5600.c:143:19:AS5600_GetRawAngle	40	static
+../Core/Src/as5600.c:161:19:AS5600_GetAngle	40	static
