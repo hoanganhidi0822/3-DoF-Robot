@@ -72,6 +72,7 @@ float d = 0;
 float e = 0, f = 0,g = 0,h =0,i=0;
 int dir1, dir2, dir3 = 1;
 float a3Ratio = 0;
+int count = 0;
 // Soft counters and periods
 int softCounter1 = 0;
 int softCounter2 = 0;
@@ -122,33 +123,58 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if (HOME == 1){
 			g+=1;
-			if ( g >= 20000){
-				g = 9000;
+//			if ( g >= 20000){
+//				g = 10000;
+//			}
+//			if(g > 20000){
+//				target_angle_1 = 0;
+//				target_angle_2 = 43.2;
+//				target_angle_3 = -118;
+//			}else if (g > 17000){
+//				target_angle_1 = 45;
+//				target_angle_2 = 42.42;
+//				target_angle_3 = -135.5;
+//
+//			}else if (g > 14000){
+//				target_angle_1 = 45;
+//				target_angle_2 = 31.4;
+//				target_angle_3 = -90.8;
+//
+//
+//			}else if (g > 10000){
+//				target_angle_1 = 0;
+//				target_angle_2 = 43.2;
+//				target_angle_3 = -118;
+//
+//			}else{
+//				target_angle_1 = 0;
+//				target_angle_2 = 90;
+//				target_angle_3 = -90;
+//			}
+
+			if (g > 24000){
+				g = 14000;
 			}
-			if(g > 17000){
+
+			if ( g >22000){
 				target_angle_1 = 0;
 				target_angle_2 = 43.2;
 				target_angle_3 = -118;
+			}else if (g > 19000){
+				target_angle_1 = -45;
+				target_angle_2 = 50;
+				target_angle_3 = -100;
+
 			}else if (g > 14000){
-				target_angle_1 = 45;
-				target_angle_2 = 42.42;
-				target_angle_3 = -135.5;
-
-			}else if (g > 11000){
-				target_angle_1 = 45;
-				target_angle_2 = 31.4;
-				target_angle_3 = -90.8;
-
-
-			}else if (g > 9000){
 				target_angle_1 = 0;
 				target_angle_2 = 43.2;
 				target_angle_3 = -118;
 
-			}else{
-				target_angle_1 = 0;
-				target_angle_2 = 90;
-				target_angle_3 = -135;
+			}
+			else{
+				target_angle_1 = 45;
+				target_angle_2 = 50;
+				target_angle_3 = -100;
 			}
 
 			if ((target_angle_1 != target_angle_1_temp)||(target_angle_2 != target_angle_2_temp)||(target_angle_3 != target_angle_3_temp)){
@@ -412,12 +438,33 @@ void autoHomeMotors(void) {
 
     periodMotor1 = 4;
 	periodMotor2 = 4;
-	periodMotor3 = 4;
+	periodMotor3 = 10;
+	int i = 0;
 
     // Wait until all limit switches are triggered
-    while (a == 0 || b == 0 || c == 0) {
+    while (a == 0 || b == 0 || c == 0 || count <1) {
         checkLimitSwitches(); // Continuously check the limit switches
     }
+    while (count == 1){
+    	HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_RESET);
+
+    	if (countPulseL3 == 0 && i == 0){
+    		countPulseL3 = 10060;
+    		i = 1;
+    	}
+
+    	if (countPulseL3 == 0 && i == 1){
+			count = 2;
+			a = 0;
+			b=0;
+			c=0;
+			countPulseL3 = 50000;
+		}
+    }
+
+    while (a == 0 || b == 0 || c == 0 ) {
+		checkLimitSwitches(); // Continuously check the limit switches
+	}
 
     // Set the home angle once all limit switches are activated
     HOME = 1;
@@ -449,15 +496,25 @@ void checkLimitSwitches(void) {
         b = 0;
     }
 
+
+    if (a == 1 && b == 1 && c == 1 && count != 1){
+      count = 1;
+
+	}
+
     // Check and handle limit switch 3
     if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET) {
         c = 1;
-        countPulseL3 = countPulseL2;  // Stop Motor 3 if limit switch 3 is triggered
+
+		periodMotor3 = periodMotor2;
+		countPulseL3 = countPulseL2;  // Stop Motor 3 if limit switch 3 is triggered
+
         HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_RESET);  // Stop motor direction for M3
     } else {
         c = 0;
         HAL_GPIO_WritePin(GPIOF, M3dir_Pin, GPIO_PIN_SET);  // Set motor direction for M3
     }
+
 }
 
 
@@ -510,6 +567,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim4);
+
+
+
   autoHomeMotors();
 
 
