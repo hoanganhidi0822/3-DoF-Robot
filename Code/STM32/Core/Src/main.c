@@ -19,10 +19,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "as5600.h"
+#include <stdlib.h>
+#include <string.h>
 #include <stdlib.h>
 
 /* USER CODE END Includes */
@@ -56,6 +57,9 @@ I2C_HandleTypeDef hi2c3;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
+UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_rx;
+
 /* USER CODE BEGIN PV */
 float angle1, angle2, angle3 = 0.0, error = 0;
 int angle11, angle21, angle31 = 0;
@@ -69,7 +73,7 @@ int countPulseL3 = 0;
 
 int a,b,c = 0;
 float d = 0;
-float e = 0, f = 0,g = 0,h =0,i=0;
+float e = 0, f = 0,g = 0,h =0,i=0,p=0;
 int dir1, dir2, dir3 = 1;
 float a3Ratio = 0;
 int count = 0;
@@ -93,17 +97,22 @@ int steps_motor_1 = 0;
 int steps_motor_2 = 0;
 int steps_motor_3 = 0;
 
+char rx_data[30];  // Buffer for incoming data (adjust size as needed)
+float rx_angle1, rx_angle2, rx_angle3 = 0;
+int receiveComplete;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_TIM2_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_TIM2_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void pulseCreater(void);
 void angleControl(float target_angle_1, float target_angle_2, float target_angle_3);
@@ -130,7 +139,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //				target_angle_1 = 0;
 //				target_angle_2 = 43.2;
 //				target_angle_3 = -118;
-//			}else if (g > 17000){
+//			}else if (g > 15000){
 //				target_angle_1 = 45;
 //				target_angle_2 = 42.42;
 //				target_angle_3 = -135.5;
@@ -152,29 +161,78 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //				target_angle_3 = -90;
 //			}
 
-			if (g > 24000){
-				g = 14000;
+			if (g > 47000){
+				g = 0;
 			}
 
-			if ( g >22000){
+			if(g > 43000){
 				target_angle_1 = 0;
-				target_angle_2 = 43.2;
-				target_angle_3 = -118;
-			}else if (g > 19000){
-				target_angle_1 = -45;
-				target_angle_2 = 50;
-				target_angle_3 = -100;
-
-			}else if (g > 14000){
-				target_angle_1 = 0;
-				target_angle_2 = 43.2;
-				target_angle_3 = -118;
+				target_angle_2 = 75;
+				target_angle_3 = -90;
+			}else if (g > 40000){
+				target_angle_1 = 14.04;
+				target_angle_2 = 25.65;
+				target_angle_3 = -63.8;
 
 			}
+			else if (g > 37000){
+				target_angle_1 = 0;
+				target_angle_2 = 75;
+				target_angle_3 = -90;
+
+			}
+			else if (g > 34000){
+				target_angle_1 = 8.13;
+				target_angle_2 = 37.36;
+				target_angle_3 = -88.96;
+
+			}
+			else if (g > 28000){
+				target_angle_1 = 0;
+				target_angle_2 = 75;
+				target_angle_3 = -90;
+
+			}
+			else if (g > 25000){
+				target_angle_1 = -9.462;
+				target_angle_2 = 44.87;
+				target_angle_3 = -106.3;
+
+			}else if (g > 21000){
+				target_angle_1 = 0;
+				target_angle_2 = 75;
+				target_angle_3 = -90;
+
+			}
+			else if (g > 18000){
+				target_angle_1 = 18.43;
+				target_angle_2 = 41.98;
+				target_angle_3 = -101.9;
+
+			}
+			else if (g > 12000){
+							target_angle_1 = 0;
+							target_angle_2 = 75;
+							target_angle_3 = -90;
+
+						}
+			else if (g > 9000){
+				target_angle_1 = 0;
+				target_angle_2 = 45.43;
+				target_angle_3 = -107.6;
+
+			}
+			else if (g > 6000){
+				target_angle_1 = 0;
+				target_angle_2 = 75;
+				target_angle_3 = -90;
+
+			}
+
 			else{
-				target_angle_1 = 45;
-				target_angle_2 = 50;
-				target_angle_3 = -100;
+				target_angle_1 = 0;
+				target_angle_2 = 55.39;
+				target_angle_3 = -137.4;
 			}
 
 			if ((target_angle_1 != target_angle_1_temp)||(target_angle_2 != target_angle_2_temp)||(target_angle_3 != target_angle_3_temp)){
@@ -241,6 +299,33 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 //----------------------Pulse Creater--------------------//
+int char_to_int(char c)
+{
+	return (int)(c) - 48;
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART2)
+	    {
+	        // Ensure received data is null-terminated
+	        rx_data[29] = '\0';
+
+	        // Parse the received string using strtok
+	        char *token = strtok(rx_data, ",");  // Split by comma
+	        if (token != NULL) rx_angle1 = atof(token);
+
+	        token = strtok(NULL, ",");
+	        if (token != NULL) rx_angle2 = atof(token);
+
+	        token = strtok(NULL, ",");
+	        if (token != NULL) rx_angle3 = atof(token);
+
+	        // Restart reception
+	        HAL_UART_Receive_DMA(&huart2, (uint8_t *)rx_data, 29);  // Adjust size based on expected length
+	        receiveComplete = 1;
+	    }
+}
 
 
 void Mag_Control(int state)
@@ -288,19 +373,24 @@ int calculate_steps(float current_angle, float target_angle)
     // Calculate the angular difference
 
     float angular_difference ;
-    int temp;
+    float temp,i;
 
     temp = target_angle - current_angle;
-	if (abs(temp) == 0){
+    if (temp > 0){
+    	i = 1;
+    }else{
+    	i = -1;
+    }
+	if (fabs(temp) == 0){
 		angular_difference = 0;
 	}else{
-		angular_difference = target_angle - current_angle;
+		angular_difference = (target_angle) - current_angle;
 	}
 
 
     // Convert angular difference to steps
-	int steps_needed = (int)round((angular_difference / 360.0) * 43840.0 * 2);
-	d = (int)round((0.98 / 360.0) * 44800 * 2);
+	int steps_needed = (((angular_difference) / 360.0) * 43840.0 * 2.0);
+	d = (int)round((0.98 / 360.0) * 43840 * 2.0);
     // Return the absolute number of steps (stepper motors can't move negative steps)
     return steps_needed;
 }
@@ -436,9 +526,9 @@ void autoHomeMotors(void) {
     countPulseL2 = HOMING_PULSE_LIMIT;  // Arbitrary large value for homing
     countPulseL3 = HOMING_PULSE_LIMIT;  // Arbitrary large value for homing
 
-    periodMotor1 = 4;
-	periodMotor2 = 4;
-	periodMotor3 = 10;
+    periodMotor1 = 8;
+	periodMotor2 = 8;
+	periodMotor3 = 20;
 	int i = 0;
 
     // Wait until all limit switches are triggered
@@ -473,15 +563,15 @@ void autoHomeMotors(void) {
 
 void setHomeAngles(void) {
     // Set the current angle to zero or a specific home angle as needed
-    angle1 = 0.0; // Home position for Motor 1
-    angle2 = 90.0; // Home position for Motor 2
-    angle3 = -160.0; // Home position for Motor 3
+    angle1 = 7.0; // Home position for Motor 1
+    angle2 = 86.65; // Home position for Motor 2
+    angle3 = -149.65; // Home position for Motor 3
 
 }
 
 void checkLimitSwitches(void) {
     // Check and handle limit switch 1
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET) {
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
         a = 1;
         countPulseL1 = 0;  // Stop Motor 1 if limit switch 1 is triggered
     } else {
@@ -489,7 +579,7 @@ void checkLimitSwitches(void) {
     }
 
     // Check and handle limit switch 2, ensuring that it only works if limit switch 3 is not active
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
+    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET) {
         b = 1;
         countPulseL2 = 0;  // Stop Motor 2 if limit switch 2 is triggered
     } else {
@@ -534,7 +624,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-     HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 //	angleL1 = AS5600_New();
@@ -559,12 +649,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM2_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_I2C3_Init();
   MX_TIM4_Init();
+  MX_TIM2_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_DMA(&huart2, (uint8_t *)rx_data, 29);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim4);
 
@@ -586,6 +679,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  HAL_UART_Transmit(&huart2, "hello", sizeof("hello"), 10);
 
 	  //calc_angle_3();
 	  //angleControl(angle1,angle2, angle3);
@@ -912,6 +1006,70 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -924,6 +1082,7 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
