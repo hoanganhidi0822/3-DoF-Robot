@@ -4,6 +4,8 @@ import pyqtgraph as pg
 import numpy as np
 from PyQt5.QtGui import QImage, QPixmap
 import cv2
+from SerialCom import initialize_serial_connection, format_angle  # Import functions from serial_comm.py
+from Kinematic import IK_T6
 # Cửa sổ đăng nhập
 class LoginWindow(QtWidgets.QWidget):
     def __init__(self):
@@ -232,11 +234,21 @@ class ManualWindow(QtWidgets.QWidget):
             theta_label.setFixedWidth(80)
             theta_label.setStyleSheet("font-size: 18px; font-weight: bold;")
             
-            # Slider
+            # Slider with different min and max values for each
             slider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
-            slider.setMinimum(0)
-            slider.setMaximum(180)
-            slider.setValue(90)
+
+            # Set different limits for each slider
+            if i == 0:
+                slider.setMinimum(-90)
+                slider.setMaximum(90)
+            elif i == 1:
+                slider.setMinimum(20)
+                slider.setMaximum(90)
+            elif i == 2:
+                slider.setMinimum(-170)
+                slider.setMaximum(-90)
+
+            slider.setValue(0)
             slider.setTickInterval(10)
             slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
             slider.setFixedWidth(400)
@@ -418,10 +430,28 @@ class ManualWindow(QtWidgets.QWidget):
     def auto_home_function(self):
         # Example action: Reset sliders and input boxes to home positions (90 for angles, 0 for positions)
         for slider, input_box in zip(self.sliders, self.inputs):
-            slider.setValue(90)
-            input_box.setText("90")
+            slider.setValue(0)
+            input_box.setText("0")
         for input_box in self.position_inputs:
             input_box.setText("0")
+            
+         # Predefined angle values
+        angle1 = 0.0
+        angle2 = 84.0
+        angle3 = -154.0
+
+        # Convert each angle using the format_angle function
+        sign1, data1 = format_angle(angle1)
+        sign2, data2 = format_angle(angle2)
+        sign3, data3 = format_angle(angle3)
+
+        # Combine all into a single string for sending
+        data_to_send = f"{sign1}{data1}{sign2}{data2}{sign3}{data3}"
+        
+        # Send the formatted string
+        ser.write(data_to_send.encode())  # Encode the string to bytes before sending   
+            
+            
         print("Auto Home activated: All values reset.")
 
     def go_back(self):
@@ -434,13 +464,43 @@ class ManualWindow(QtWidgets.QWidget):
         self.theta1 = self.sliders[0].value()
         self.theta2 = self.sliders[1].value()
         self.theta3 = self.sliders[2].value()
+        # Predefined angle values
+        angle1 = self.theta1
+        angle2 = self.theta2
+        angle3 = self.theta3
+
+        # Convert each angle using the format_angle function
+        sign1, data1 = format_angle(angle1)
+        sign2, data2 = format_angle(angle2)
+        sign3, data3 = format_angle(angle3)
+
+        # Combine all into a single string for sending
+        data_to_send = f"{sign1}{data1}{sign2}{data2}{sign3}{data3}"
+        
+        # Send the formatted string
+        ser.write(data_to_send.encode())  # Encode the string to bytes before sending
         print(f"Theta values saved: Theta1={self.theta1}, Theta2={self.theta2}, Theta3={self.theta3}")
 
     def save_position_values(self):
-        self.x = int(self.position_inputs[0].text())
-        self.y = int(self.position_inputs[1].text())
-        self.z = int(self.position_inputs[2].text())
-        print(f"Position values saved: X={self.x}, Y={self.y}, Z={self.z}")
+        self.x = float(self.position_inputs[0].text())
+        self.y = float(self.position_inputs[1].text())
+        self.z = float(self.position_inputs[2].text())
+        
+        angle1, angle2, angle3 = IK_T6(self.x, self.y, self.z, 2)
+        
+        # Convert each angle using the format_angle function
+        sign1, data1 = format_angle(angle1 )
+        sign2, data2 = format_angle(angle2)
+        sign3, data3 = format_angle(angle3 )
+
+        # Combine all into a single string for sending
+        data_to_send = f"{sign1}{data1}{sign2}{data2}{sign3}{data3}"
+        
+        # Send the formatted string
+        ser.write(data_to_send.encode())  # Encode the string to bytes before sending
+        
+        
+        print(f"angle values of IK: X={angle1}, Y={angle2}, Z={angle3}")
 
 
         
@@ -633,6 +693,7 @@ class AutoWindow(QtWidgets.QWidget):
         
 # Chạy ứng dụng
 if __name__ == "__main__":
+    ser = initialize_serial_connection('COM11', 115200)
     app = QtWidgets.QApplication(sys.argv)
     window = LoginWindow()
     window.show()

@@ -8,10 +8,10 @@ try:
     print("Waiting for data...")
     while True:  # Continuous loop to read data
         if ser.in_waiting > 0:  # Check if data is available to read
-            received_data = ser.readline().decode('utf-8').strip()  # Read and decode the data
+            received_data = ser.readline()# Read and decode the data
             print(f"Received: {received_data}")  # Print the received data
         
-        time.sleep(0.1)  # Optional small delay to reduce CPU usage
+        time.sleep(1)  # Optional small delay to reduce CPU usage
 
 except KeyboardInterrupt:
     print("\nProgram terminated by user.")
